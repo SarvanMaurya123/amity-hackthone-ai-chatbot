@@ -2,13 +2,21 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, HeartHandshake, ShieldCheck } from "lucide-react";
 import { useAuthUser, useLogin } from "@/hooks/use-auth";
 import { validatePassword } from "@/lib/auth/password";
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInContent />
+    </Suspense>
+  );
+}
+
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: currentUser } = useAuthUser();
