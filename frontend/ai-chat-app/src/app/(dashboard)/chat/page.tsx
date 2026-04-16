@@ -1,92 +1,76 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { HeartHandshake } from "lucide-react";
+import { HeartHandshake, Languages, Workflow } from "lucide-react";
 import { useChatStore } from "@/app/store/chatStore";
-import { ChatHistoryItem, streamGeminiResponse } from "@/app/lib/gemini";
 import ChatArea from "@/app/components/ChatArea";
 import ChatInput from "@/app/components/ChatInput";
+import { conversationsQueryKey, useConversations } from "@/hooks/use-conversations";
+import { useChatHealth } from "@/hooks/use-system";
+import { ChatApiError, sendChatMessage } from "@/services/chat-service";
 
 export default function ChatPage() {
   const {
     activeConversationId,
-    getActiveConversation,
-    createConversation,
-    addMessage,
-    updateMessage,
     isStreaming,
     setStreaming,
+    setActiveConversation,
   } = useChatStore();
-
-  const conversations = useChatStore((state) => state.conversations);
+  const queryClient = useQueryClient();
+  const { data: conversations = [] } = useConversations(true);
   const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null;
   const [composerValue, setComposerValue] = useState("");
   const [showTypingIndicator, setShowTypingIndicator] = useState(false);
+  const [latestReplyMeta, setLatestReplyMeta] = useState<{
+    source: "pkl_model" | "llm" | "rule_based";
+    detectedLanguage: string;
+    languageStyle: string;
+  } | null>(null);
   const initialized = useRef(false);
+  const chatHealth = useChatHealth(true);
 
   useEffect(() => {
-    if (!initialized.current) {
-      getActiveConversation();
+    if (!initialized.current && conversations.length > 0 && !activeConversationId) {
+      setActiveConversation(conversations[0].id);
       initialized.current = true;
     }
-  }, [getActiveConversation]);
+  }, [activeConversationId, conversations, setActiveConversation]);
 
   const handleSendMessage = useCallback(
     async (content: string) => {
-      let convId = activeConversationId;
-
-      if (!convId) {
-        convId = createConversation();
-      }
-
-      addMessage(convId, { role: "user", content });
       setStreaming(true);
       setShowTypingIndicator(true);
 
       try {
-        const conversation = useChatStore.getState().conversations.find((c) => c.id === convId);
-        if (!conversation) return;
-
-        const history: ChatHistoryItem[] = conversation.messages.map((message) => ({
-          role: message.role === "user" ? "user" : "model",
-          parts: [{ text: message.content }],
-        }));
-
-        let assistantMessageId = "";
-        let fullContent = "";
-
-        const stream = streamGeminiResponse(content, history);
-
-        for await (const chunk of stream) {
-          if (!assistantMessageId) {
-            assistantMessageId = addMessage(convId, {
-              role: "assistant",
-              content: "",
-              isStreaming: true,
-            });
-            setShowTypingIndicator(false);
-          }
-
-          fullContent += chunk;
-          updateMessage(convId, assistantMessageId, fullContent, true);
-        }
-
-        updateMessage(convId, assistantMessageId, fullContent, false);
-      } catch (error) {
+        const response = await sendChatMessage(content, activeConversationId);
+        await queryClient.invalidateQueries({ queryKey: conversationsQueryKey });
+        setActiveConversation(response.conversation.id);
+        setLatestReplyMeta({
+          source: response.source,
+          detectedLanguage: response.detected_language,
+          languageStyle: response.language_style,
+        });
+        setShowTypingIndicator(false);
+      } catch (error: unknown) {
         console.error("Failed to get AI response:", error);
-        if (showTypingIndicator) {
-          addMessage(convId, {
-            role: "assistant",
-            content: "I encountered an error while processing your request. Please try again.",
-          });
-          setShowTypingIndicator(false);
-        }
+        const fallbackMessage =
+          error instanceof ChatApiError
+            ? error.message
+            : "I encountered an error while processing your request. Please check the backend API and try again.";
+        console.error(fallbackMessage);
+        setShowTypingIndicator(false);
       } finally {
         setStreaming(false);
       }
     },
-    [activeConversationId, createConversation, addMessage, updateMessage, setStreaming, showTypingIndicator]
+    [
+      activeConversationId,
+      queryClient,
+      setActiveConversation,
+      setStreaming,
+    ]
   );
 
   const handlePromptSelect = (prompt: string) => {
@@ -96,6 +80,18 @@ export default function ChatPage() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-transparent">
       <div className="mx-auto flex min-h-0 w-full max-w-[1120px] flex-1 flex-col px-2.5 pb-3 pt-14 sm:px-4 sm:pb-4 sm:pt-5 lg:px-5">
+        {chatHealth.error && (
+          <div className="mb-3 rounded-[1.2rem] border border-amber-300/15 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            Backend chat API is unavailable right now. Check the FastAPI server and sign-in token, then try again.
+          </div>
+        )}
+
+        {chatHealth.data && !chatHealth.data.llm_configured && (
+          <div className="mb-3 rounded-[1.2rem] border border-sky-300/15 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">
+            The backend is running in local fallback mode. Add a valid Mistral API key to enable LangChain LLM responses.
+          </div>
+        )}
+
         {!activeConversation && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -116,9 +112,29 @@ export default function ChatPage() {
           </motion.div>
         )}
 
+        {latestReplyMeta && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3 flex flex-wrap items-center gap-2 rounded-[1.1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-xs text-slate-300"
+          >
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-300/10 px-3 py-1 text-emerald-100">
+              <Workflow className="h-3.5 w-3.5" />
+              Source: {latestReplyMeta.source}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-sky-300/10 px-3 py-1 text-sky-100">
+              <Languages className="h-3.5 w-3.5" />
+              Language: {latestReplyMeta.detectedLanguage}
+            </span>
+            <span className="rounded-full bg-white/[0.04] px-3 py-1 text-slate-300">
+              Style: {latestReplyMeta.languageStyle}
+            </span>
+          </motion.div>
+        )}
+
         <div className="min-h-0 flex-1 overflow-hidden rounded-[1.45rem] bg-transparent sm:rounded-[1.7rem]">
           <ChatArea
-            conversationId={activeConversationId}
+            conversation={activeConversation}
             onSelectPrompt={handlePromptSelect}
             showTypingIndicator={showTypingIndicator}
           />
@@ -129,7 +145,7 @@ export default function ChatPage() {
             onSend={handleSendMessage}
             onValueChange={setComposerValue}
             value={composerValue}
-            disabled={isStreaming}
+            disabled={isStreaming || chatHealth.isLoading || !!chatHealth.error}
           />
         </div>
       </div>

@@ -36,3 +36,5 @@ def get_users_collection() -> Collection:
 
 def ensure_indexes() -> None:
     get_users_collection().create_index([("email", ASCENDING)], unique=True)
+    get_database()["conversations"].create_index([("user_id", ASCENDING), ("updated_at", ASCENDING)])
+    get_database()["emotional_memories"].create_index([("user_id", ASCENDING)], unique=True)

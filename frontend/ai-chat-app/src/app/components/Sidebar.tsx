@@ -16,6 +16,8 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useClearConversations, useConversations, useDeleteConversation, useUpdateConversation } from "@/hooks/use-conversations";
+import type { Conversation } from "@/types/conversation";
 import { useAuthUser, useLogout } from "@/hooks/use-auth";
 import { useChatStore } from "../store/chatStore";
 
@@ -23,7 +25,7 @@ interface SidebarProps {
   onNewChat: () => void;
 }
 
-function formatDate(date: Date) {
+function formatDate(date: string) {
   return new Date(date).toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -37,20 +39,22 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const { data: conversations = [] } = useConversations(Boolean(currentUser));
+  const deleteConversationMutation = useDeleteConversation();
+  const updateConversationMutation = useUpdateConversation();
+  const clearConversationsMutation = useClearConversations();
   const {
-    conversations,
     activeConversationId,
     sidebarOpen,
     setSidebarOpen,
     setActiveConversation,
-    deleteConversation,
-    togglePin,
+    clearActiveConversation,
   } = useChatStore();
 
   const sortedConversations = [...conversations].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
 
   const handleSelectConversation = (id: string) => {
@@ -63,6 +67,20 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
     onNewChat();
     router.push("/chat");
     setSidebarOpen(false);
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    await deleteConversationMutation.mutateAsync(conversationId);
+    if (activeConversationId === conversationId) {
+      clearActiveConversation();
+    }
+  };
+
+  const handleTogglePin = async (conversation: Conversation) => {
+    await updateConversationMutation.mutateAsync({
+      conversationId: conversation.id,
+      payload: { pinned: !conversation.pinned },
+    });
   };
 
   useEffect(() => {
@@ -217,7 +235,7 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
                               )}
                             </div>
                             <p className="mt-0.5 text-[10.5px] text-slate-500">
-                              {conversation.messages.length} turns | {formatDate(conversation.updatedAt)}
+                              {conversation.messages.length} turns | {formatDate(conversation.updated_at)}
                             </p>
                           </div>
                         )}
@@ -248,7 +266,7 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
                         >
                           <button
                             onClick={() => {
-                              togglePin(conversation.id);
+                              void handleTogglePin(conversation);
                               setOpenMenuId(null);
                             }}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-slate-300 transition hover:bg-white/6 hover:text-amber-300"
@@ -258,7 +276,7 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
                           </button>
                           <button
                             onClick={() => {
-                              deleteConversation(conversation.id);
+                              void handleDeleteConversation(conversation.id);
                               setOpenMenuId(null);
                             }}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] text-slate-300 transition hover:bg-white/6 hover:text-rose-300"
@@ -331,6 +349,7 @@ export default function Sidebar({ onNewChat }: SidebarProps) {
                     onClick={() => {
                       setProfileMenuOpen(false);
                       signOut();
+                      void clearConversationsMutation.reset();
                       setSidebarOpen(false);
                       router.push("/sign-in");
                     }}

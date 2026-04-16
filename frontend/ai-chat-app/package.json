@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",
-    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^7.7.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.3",

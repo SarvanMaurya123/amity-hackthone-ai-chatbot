@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health
+from app.api.routes import auth, chat, conversations, health, workspace
 from app.core.config import settings
 from app.db.mongodb import close_mongo_connection, connect_to_mongo, ensure_indexes
 
@@ -31,4 +31,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(health.router, prefix=settings.api_v1_prefix)
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(chat.router, prefix=settings.api_v1_prefix)
+app.include_router(conversations.router, prefix=settings.api_v1_prefix)
+app.include_router(workspace.router, prefix=settings.api_v1_prefix)

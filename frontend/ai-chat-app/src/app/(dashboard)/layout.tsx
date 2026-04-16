@@ -14,7 +14,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const createConversation = useChatStore((state) => state.createConversation);
+  const clearActiveConversation = useChatStore((state) => state.clearActiveConversation);
   const setSidebarOpen = useChatStore((state) => state.setSidebarOpen);
   const { data: currentUser, isLoading } = useAuthUser();
 
@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#09111d] text-slate-100">
-      <Sidebar onNewChat={createConversation} />
+      <Sidebar onNewChat={clearActiveConversation} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-blue-500/10 via-sky-400/5 to-transparent" />
         <button

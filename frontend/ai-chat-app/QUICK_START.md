@@ -67,7 +67,7 @@ pnpm install
 ### 2. Environment
 Create `.env.local`:
 ```
-NEXT_PUBLIC_GEMINI_API_KEY=your_key_here
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 ### 3. Run
@@ -128,7 +128,7 @@ handleSendMessage() in page.tsx
     ↓
 Add user message to store
     ↓
-Call gemini.streamGeminiResponse()
+Call the backend `/api/v1/chat` API
     ↓
 Add AI message to store (empty initially)
     ↓
@@ -189,7 +189,7 @@ ChatPage (orchestrator)
 
 ## API Integration
 
-Uses Google Generative AI (Gemini 2.0 Flash):
+Uses the backend Mistral integration:
 - Streaming responses
 - Safety settings configured
 - System instruction for AI personality

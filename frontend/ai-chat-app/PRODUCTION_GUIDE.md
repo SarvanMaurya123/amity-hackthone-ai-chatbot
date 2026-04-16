@@ -14,7 +14,7 @@ We've built a complete, production-ready ChatGPT-like chat application using Nex
 - **UI Components**: React with TypeScript
 - **Markdown**: React Markdown + Syntax Highlighter
 - **Icons**: Lucide React
-- **AI Integration**: Google Generative AI (Gemini)
+- **AI Integration**: Mistral AI via backend API
 
 ### Folder Structure
 ```
@@ -32,7 +32,7 @@ We've built a complete, production-ready ChatGPT-like chat application using Nex
     MessageBubble.tsx       # Individual message component
     Header.tsx              # Header component
   /lib
-    gemini.ts               # Gemini API integration
+    services/chat-service.ts # Backend chat API integration
     chat-store.ts           # Zustand store (chat store)
     settingsStore.ts        # Settings store
   /store
@@ -162,7 +162,7 @@ interface ChatMessage {
 2. Message added to store with "user" role
 3. AI response initiated with `setStreaming(true)`
 4. Typing indicator shown
-5. Gemini API streams response in chunks
+5. Backend chat API returns the assistant response
 6. Each chunk updates the message in real-time (streaming effect)
 7. When complete, set `isStreaming` to false
 8. Input re-enabled for next message
@@ -192,9 +192,9 @@ Default dark mode. Light mode toggle planned in settings.
 
 ## API Integration
 
-### Gemini Integration (`lib/gemini.ts`)
+### Chat Integration (`services/chat-service.ts`)
 ```typescript
-async function* streamGeminiResponse(
+async function sendChatMessage(
   userMessage: string,
   history: ChatHistoryItem[]
 ): AsyncGenerator<string>
@@ -209,7 +209,7 @@ async function* streamGeminiResponse(
 
 **Environment Variables:**
 ```
-NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 ## Keyboard Shortcuts
@@ -284,7 +284,7 @@ pnpm install
 ### 2. Environment Setup
 ```bash
 # .env.local
-NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 ### 3. Run Development Server

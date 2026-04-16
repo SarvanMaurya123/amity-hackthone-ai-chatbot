@@ -21,6 +21,38 @@ class Settings:
         for origin in getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
         if origin.strip()
     ]
+    mistral_api_key: str = getenv("MISTRAL_API_KEY", "")
+    llm_model_name: str = getenv("LLM_MODEL_NAME", "mistral-small-latest")
+    primary_classifier_model_path: Path = BASE_DIR / getenv(
+        "PRIMARY_CLASSIFIER_MODEL_PATH", "models/production_mental_health_model.pkl"
+    )
+    primary_label_encoder_path: Path = BASE_DIR / getenv(
+        "PRIMARY_LABEL_ENCODER_PATH", "models/production_label_encoder.joblib"
+    )
+    binary_classifier_model_path: Path = BASE_DIR / getenv(
+        "BINARY_CLASSIFIER_MODEL_PATH", "models/binary_conversation_classifier.pkl"
+    )
+    binary_label_encoder_path: Path = BASE_DIR / getenv(
+        "BINARY_LABEL_ENCODER_PATH", "models/binary_encoder.joblib"
+    )
+    tertiary_classifier_model_path: Path = BASE_DIR / getenv(
+        "TERTIARY_CLASSIFIER_MODEL_PATH", "models/multiclass_all_labels_classifier.pkl"
+    )
+    tertiary_label_encoder_path: Path = BASE_DIR / getenv(
+        "TERTIARY_LABEL_ENCODER_PATH", "models/multiclass_encoder.joblib"
+    )
+
+    @property
+    def has_valid_mistral_api_key(self) -> bool:
+        key = self.mistral_api_key.strip()
+        if not key:
+            return False
+        invalid_placeholders = {
+            "your-mistral-api-key",
+            "replace-with-your-mistral-api-key",
+            "your_api_key_here",
+        }
+        return key.lower() not in invalid_placeholders
 
 
 @lru_cache

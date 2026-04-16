@@ -10,11 +10,11 @@ import {
   Sparkles,
   Tags,
 } from "lucide-react";
-import { useChatStore } from "../store/chatStore";
+import type { Conversation } from "@/types/conversation";
 import { MessageBubble, TypingIndicator } from "./MessageBubble";
 
 interface ChatAreaProps {
-  conversationId: string | null;
+  conversation: Conversation | null;
   onSelectPrompt: (prompt: string) => void;
   showTypingIndicator: boolean;
 }
@@ -154,13 +154,11 @@ function WelcomeScreen({ onSelectPrompt }: { onSelectPrompt: (prompt: string) =>
 }
 
 export default function ChatArea({
-  conversationId,
+  conversation,
   onSelectPrompt,
   showTypingIndicator,
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const conversations = useChatStore((state) => state.conversations);
-  const conversation = conversations.find((c) => c.id === conversationId);
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -171,7 +169,7 @@ export default function ChatArea({
     return () => clearTimeout(timer);
   }, [conversation?.messages, showTypingIndicator]);
 
-  if (!conversationId || !conversation) {
+  if (!conversation) {
     return (
       <div className="no-scrollbar flex-1 overflow-y-auto">
         <WelcomeScreen onSelectPrompt={onSelectPrompt} />
@@ -181,19 +179,20 @@ export default function ChatArea({
 
   return (
     <div className="no-scrollbar flex h-full flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-[54rem] flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-5">
+      <div className="mx-auto flex w-full max-w-[56rem] flex-1 flex-col px-3 py-4 sm:px-4 sm:py-5 lg:px-5">
         {conversation.messages.length === 0 ? (
           <WelcomeScreen onSelectPrompt={onSelectPrompt} />
         ) : (
           <AnimatePresence mode="popLayout">
-            <div className="space-y-3">
+            <div className="space-y-1">
               {conversation.messages.map((message) => (
                 <MessageBubble
                   key={message.id}
                   role={message.role}
                   content={message.content}
                   timestamp={message.timestamp}
-                  isStreaming={message.isStreaming}
+                  isStreaming={message.is_streaming}
+                  metadata={message.metadata}
                 />
               ))}
 
@@ -202,12 +201,12 @@ export default function ChatArea({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   key="typing-indicator"
-                  className="flex gap-3 sm:gap-4"
+                  className="flex items-end gap-3 sm:gap-4"
                 >
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-100 sm:h-10 sm:w-10 sm:rounded-2xl">
                     <HeartHandshake className="h-5 w-5" />
                   </div>
-                  <div className="rounded-2xl rounded-bl-md border border-white/8 bg-white/[0.04] px-4 py-3 text-slate-100">
+                  <div className="rounded-[1.5rem] rounded-bl-md border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] px-4 py-3 text-slate-100 shadow-[0_10px_28px_rgba(0,0,0,0.12)]">
                     <TypingIndicator />
                   </div>
                 </motion.div>

@@ -8,12 +8,14 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Bot, Check, Copy } from "lucide-react";
 import type { Components } from "react-markdown";
+import type { MessageMetadata } from "@/types/conversation";
 
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp: Date | string;
   isStreaming?: boolean;
+  metadata?: MessageMetadata | null;
 }
 
 function CopyButton({ text, invert = false }: { text: string; invert?: boolean }) {
@@ -72,7 +74,7 @@ const markdownComponents: Components = {
   code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
     const codeString = String(children).replace(/\n$/, "");
-    const isBlock = codeString.includes("\n") || match;
+    const isBlock = Boolean(codeString.includes("\n") || match);
     const lang = match?.[1] || "text";
 
     if (isBlock) {
@@ -126,11 +128,11 @@ const markdownComponents: Components = {
     <h2 className="mb-1.5 mt-3 text-base font-semibold tracking-tight text-slate-100">{children}</h2>
   ),
   h3: ({ children }) => <h3 className="mb-1 mt-2.5 text-sm font-semibold text-slate-200">{children}</h3>,
-  p: ({ children }) => <p className="my-1.5 text-[0.92rem] leading-7 text-slate-200">{children}</p>,
-  ul: ({ children }) => <ul className="my-2 space-y-1 pl-0 list-none">{children}</ul>,
-  ol: ({ children }) => <ol className="my-2 space-y-1 pl-0 list-none">{children}</ol>,
+  p: ({ children }) => <p className="my-1.5 text-[0.95rem] leading-7 text-slate-200">{children}</p>,
+  ul: ({ children }) => <ul className="my-2 list-none space-y-1 pl-0">{children}</ul>,
+  ol: ({ children }) => <ol className="my-2 list-none space-y-1 pl-0">{children}</ol>,
   li: ({ children }) => (
-    <li className="flex items-start gap-2 text-[0.9rem] leading-relaxed text-slate-200">
+    <li className="flex items-start gap-2 text-[0.92rem] leading-relaxed text-slate-200">
       <span className="mt-[0.48rem] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-300/70" />
       <span>{children}</span>
     </li>
@@ -197,33 +199,45 @@ function UserAvatar({ initials = "U" }: { initials?: string }) {
   );
 }
 
+function MetadataBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      {label}
+    </span>
+  );
+}
+
 export function MessageBubble({
   role,
   content,
   timestamp,
   isStreaming,
+  metadata,
 }: MessageBubbleProps) {
   const time = new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const isUser = role === "user";
+  const sourceLabel = metadata?.source ? metadata.source.replace("_", " ") : null;
+  const languageLabel = metadata?.detected_language || null;
+  const styleLabel = metadata?.language_style || null;
 
   return (
-    <div className="mb-4">
+    <div className="mb-5">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+        className={`flex items-end gap-3 ${isUser ? "justify-end" : "justify-start"}`}
       >
         {!isUser && <AIAvatar />}
 
-        <div className={`flex max-w-[82%] flex-col gap-1.5 sm:max-w-[72%] ${isUser ? "items-end" : "items-start"}`}>
+        <div className={`flex max-w-[88%] flex-col gap-2 sm:max-w-[74%] ${isUser ? "items-end" : "items-start"}`}>
           {isUser ? (
-            <div className="relative rounded-2xl rounded-tr-md bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3 text-white">
+            <div className="relative w-full rounded-[1.5rem] rounded-br-md bg-gradient-to-br from-sky-500 via-sky-600 to-blue-700 px-4 py-3 text-white shadow-[0_12px_30px_rgba(37,99,235,0.28)]">
               <div className="absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <p className="text-[0.9rem] leading-7">{content}</p>
+              <p className="whitespace-pre-wrap break-words text-[0.95rem] leading-7 text-white">{content}</p>
             </div>
           ) : (
-            <div className="relative rounded-2xl rounded-tl-md bg-transparent px-4 py-3.5">
+            <div className="relative w-full rounded-[1.5rem] rounded-bl-md border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] px-4 py-3.5 shadow-[0_10px_28px_rgba(0,0,0,0.12)]">
               {isStreaming ? (
                 <TypingIndicator />
               ) : (
@@ -236,8 +250,11 @@ export function MessageBubble({
             </div>
           )}
 
-          <div className={`flex items-center gap-2 px-0.5 ${isUser ? "flex-row-reverse" : ""}`}>
+          <div className={`flex flex-wrap items-center gap-2 px-1 ${isUser ? "justify-end" : "justify-start"}`}>
             <span className="text-[10px] tabular-nums text-slate-500">{time}</span>
+            {!isUser && !isStreaming && sourceLabel && <MetadataBadge label={sourceLabel} />}
+            {!isUser && !isStreaming && languageLabel && <MetadataBadge label={languageLabel} />}
+            {!isUser && !isStreaming && styleLabel && <MetadataBadge label={styleLabel} />}
             {!isUser && !isStreaming && <CopyButton text={content} />}
           </div>
         </div>

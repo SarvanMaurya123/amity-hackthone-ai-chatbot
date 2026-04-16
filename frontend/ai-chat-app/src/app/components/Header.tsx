@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useConversations } from "@/hooks/use-conversations";
 import { useChatStore } from "../store/chatStore";
 
 const pageMeta = {
@@ -29,7 +30,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const toggleSidebar = useChatStore((state) => state.toggleSidebar);
-  const conversations = useChatStore((state) => state.conversations);
+  const { data: conversations = [] } = useConversations(true);
 
   const meta = pageMeta[pathname as keyof typeof pageMeta] ?? pageMeta["/chat"];
 

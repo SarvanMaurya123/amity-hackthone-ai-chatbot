@@ -24,7 +24,7 @@ src/app/
 │   ├── MessageBubble.tsx   # Message display with formatting
 │   └── Sidebar.tsx         # Navigation sidebar
 ├── lib/
-│   └── gemini.ts           # Gemini API integration
+│   └── services/chat-service.ts # Backend chat API integration
 ├── store/
 │   ├── chatStore.ts        # Zustand store for chat state
 │   └── settingsStore.ts    # Settings state management
@@ -43,7 +43,7 @@ src/app/
 
 ### Chat Dashboard (`/chat`)
 - **Enhanced Welcome Screen**: Beautiful onboarding experience with suggestions
-- **Real-Time Streaming**: Live response generation from Gemini API
+- **Backend AI Integration**: Assistant responses come from the backend AI API
 - **Markdown Support**: Full markdown rendering with syntax highlighting
 - **Quick Actions**: One-click buttons for common tasks (Summarize, Explain, etc.)
 - **Message Statistics**: Real-time conversation metrics
@@ -99,7 +99,7 @@ pnpm install
 Create a `.env.local` file in the frontend directory:
 
 ```env
-NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 ### Development
@@ -170,7 +170,7 @@ Sidebar hides on mobile and becomes overlay with hamburger menu toggle.
 
 ## 📡 API Integration
 
-### Gemini Streaming
+### Backend Chat API
 - Real-time response streaming
 - Context-aware generation
 - Error handling and fallbacks
@@ -239,13 +239,13 @@ docker run -p 3000:3000 luminous-ai-frontend
 
 ### Issue: API Key not working
 - Check `.env.local` is properly configured
-- Verify Gemini API is enabled in your project
+- Verify the backend API is running and reachable
 - Check API key has correct permissions
 
 ### Issue: Streaming not working
 - Verify network connection
 - Check browser console for errors
-- Ensure Gemini API quota is not exceeded
+- Ensure the backend has a valid `MISTRAL_API_KEY`
 
 ### Issue: Styles not applying
 - Clear cache: `rm -rf .next`
